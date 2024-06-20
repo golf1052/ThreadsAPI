@@ -1,23 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using Flurl;
+using golf1052.ThreadsAPI.Models;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
 
 namespace golf1052.ThreadsAPI
 {
     public class ThreadsClient
     {
-        private const string BaseUrl = "https://graph.instagram.com/v19.0/";
+        private const string BaseUrl = "https://graph.threads.net/v1.0/";
+
+        public string? LongLivedAccessToken { get; set; }
+        public string? UserId { get; set; }
 
         private string ClientId { get; set; }
         private string ClientSecret { get; set; }
-        private string UserId { get; set; }
-        private string? LongLivedAccessToken { get; set; }
 
         private readonly HttpClient httpClient;
+        private readonly JsonSerializerSettings serializer;
 
         public ThreadsClient(string clientId, string clientSecret) : this(clientId, clientSecret, new HttpClient())
         {
@@ -28,11 +31,18 @@ namespace golf1052.ThreadsAPI
             ClientId = clientId;
             ClientSecret = clientSecret;
             this.httpClient = httpClient;
+            serializer = new JsonSerializerSettings()
+            {
+                ContractResolver = new DefaultContractResolver()
+                {
+                    NamingStrategy = new SnakeCaseNamingStrategy()
+                }
+            };
         }
 
         public string GetAuthorizationUrl(string redirectUri, string scopes)
         {
-            return "https://api.instagram.com/oauth/authorize" +
+            return "https://threads.net/oauth/authorize" +
                 $"?client_id={ClientId}" +
                 $"&redirect_uri={redirectUri}" +
                 $"&scope={scopes}" +
@@ -41,7 +51,7 @@ namespace golf1052.ThreadsAPI
 
         public async Task<string> GetShortLivedAccessToken(string redirectUri, string code)
         {
-            Url url = new Url("https://api.instagram.com/oauth/access_token");
+            Url url = new Url("https://graph.threads.net/oauth/access_token");
             List<KeyValuePair<string, string>> parameters = new List<KeyValuePair<string, string>>()
             {
                 new KeyValuePair<string, string>("client_id", ClientId),
@@ -69,7 +79,7 @@ namespace golf1052.ThreadsAPI
 
         public async Task<string> GetLongLivedAccessToken(string shortLivedAccessToken)
         {
-            string url = "https://graph.instagram.com/access_token" +
+            string url = "https://graph.threads.net/access_token" +
                 $"?grant_type=ig_exchange_token" +
                 $"&client_secret={ClientSecret}" +
                 $"&access_token={shortLivedAccessToken}";
@@ -89,7 +99,7 @@ namespace golf1052.ThreadsAPI
 
         public async Task<string> RefreshLongLivedAccessToken(string longLivedAccessToken)
         {
-            string url = "https://graph.instagram.com/refresh_access_token" +
+            string url = "https://graph.threads.net/refresh_access_token" +
                 $"?grant_type=ig_refresh_token" +
                 $"&access_token={longLivedAccessToken}";
             HttpResponseMessage response = await httpClient.GetAsync(url);
@@ -110,6 +120,7 @@ namespace golf1052.ThreadsAPI
             string? text = null,
             string? imageUrl = null,
             string? videoUrl = null,
+            string? replyToId = null,
             bool? isCarouselItem = null,
             List<string>? children = null)
         {
@@ -130,6 +141,11 @@ namespace golf1052.ThreadsAPI
             if (videoUrl != null)
             {
                 url.SetQueryParam("video_url", videoUrl);
+            }
+
+            if (replyToId != null)
+            {
+                url.SetQueryParam("reply_to_id", replyToId);
             }
 
             if (isCarouselItem != null)
@@ -155,7 +171,7 @@ namespace golf1052.ThreadsAPI
             }
         }
 
-        public async Task PublishThreadsMediaContainer(string creationId)
+        public async Task<string> PublishThreadsMediaContainer(string creationId)
         {
             Url url = new Url(BaseUrl).AppendPathSegments(UserId, "threads_publish")
                 .SetQueryParam("access_token", LongLivedAccessToken)
@@ -163,22 +179,34 @@ namespace golf1052.ThreadsAPI
 
             HttpResponseMessage response = await httpClient.PostAsync(url, null);
             string responseString = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
+            {
+                JObject responseObject = JObject.Parse(responseString);
+                return (string)responseObject["id"]!;
+            }
+            else
             {
                 throw new ThreadsException(responseString);
             }
         }
 
-        public async Task<JObject> GetThreadsMediaObject(string mediaId,
+        public async Task<ThreadsMediaObject> GetThreadsMediaObject(string mediaId,
             string fields)
         {
             Url url = new Url(BaseUrl).AppendPathSegment(mediaId)
-                .SetQueryParam("fields", fields);
+                .SetQueryParam("fields", fields)
+                .SetQueryParam("access_token", LongLivedAccessToken);
             HttpResponseMessage response = await httpClient.GetAsync(url);
-            string responseString = await response.Content.ReadAsStringAsync();
-            if (response.IsSuccessStatusCode)
+            return await Deserialize<ThreadsMediaObject>(response);
+        }
+
+        private async Task<T> Deserialize<T>(HttpResponseMessage responseMessage)
+        {
+            string responseString = await responseMessage.Content.ReadAsStringAsync();
+            //System.Diagnostics.Debug.WriteLine(responseString);
+            if (responseMessage.IsSuccessStatusCode)
             {
-                return JObject.Parse(responseString);
+                return JsonConvert.DeserializeObject<T>(responseString, serializer)!;
             }
             else
             {
