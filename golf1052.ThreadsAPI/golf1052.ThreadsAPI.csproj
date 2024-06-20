@@ -3,10 +3,26 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>enable</Nullable>
+    <Title>golf1052.ThreadsAPI</Title>
+    <Authors>golf1052</Authors>
+    <Version>0.1.0</Version>
+    <Description>A C# Threads.net library</Description>
+    <PackageProjectUrl>https://github.com/golf1052/ThreadsAPI</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/golf1052/ThreadsAPI</RepositoryUrl>
+    <PackageTags>meta-threads meta-threads-api</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Flurl" Version="4.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
