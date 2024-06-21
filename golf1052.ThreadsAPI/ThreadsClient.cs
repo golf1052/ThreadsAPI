@@ -200,10 +200,18 @@ namespace golf1052.ThreadsAPI
             return await Deserialize<ThreadsMediaObject>(response);
         }
 
+        public virtual async Task<ThreadsMediaContainerStatus> GetThreadsMediaContainerStatus(string containerId)
+        {
+            Url url = new Url(BaseUrl).AppendPathSegments(containerId)
+                .SetQueryParam("fields", "status,error_message")
+                .SetQueryParam("access_token", LongLivedAccessToken);
+            HttpResponseMessage response = await httpClient.GetAsync(url);
+            return await Deserialize<ThreadsMediaContainerStatus>(response);
+        }
+
         private async Task<T> Deserialize<T>(HttpResponseMessage responseMessage)
         {
             string responseString = await responseMessage.Content.ReadAsStringAsync();
-            //System.Diagnostics.Debug.WriteLine(responseString);
             if (responseMessage.IsSuccessStatusCode)
             {
                 return JsonConvert.DeserializeObject<T>(responseString, serializer)!;
