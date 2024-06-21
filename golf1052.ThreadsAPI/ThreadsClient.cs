@@ -116,7 +116,7 @@ namespace golf1052.ThreadsAPI
             }
         }
 
-        public async Task<string> CreateThreadsMediaContainer(string mediaType,
+        public virtual async Task<string> CreateThreadsMediaContainer(string mediaType,
             string? text = null,
             string? imageUrl = null,
             string? videoUrl = null,
@@ -171,7 +171,7 @@ namespace golf1052.ThreadsAPI
             }
         }
 
-        public async Task<string> PublishThreadsMediaContainer(string creationId)
+        public virtual async Task<string> PublishThreadsMediaContainer(string creationId)
         {
             Url url = new Url(BaseUrl).AppendPathSegments(UserId, "threads_publish")
                 .SetQueryParam("access_token", LongLivedAccessToken)
@@ -190,7 +190,7 @@ namespace golf1052.ThreadsAPI
             }
         }
 
-        public async Task<ThreadsMediaObject> GetThreadsMediaObject(string mediaId,
+        public virtual async Task<ThreadsMediaObject> GetThreadsMediaObject(string mediaId,
             string fields)
         {
             Url url = new Url(BaseUrl).AppendPathSegment(mediaId)
